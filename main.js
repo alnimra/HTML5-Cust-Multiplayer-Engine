@@ -1,6 +1,8 @@
 /**
  * Created by ipsum on 9/12/15.
  */
+var socket = io();
+
 var canvasMap = document.getElementById("map"),//Main Map for player
     canvasSprite = document.getElementById("sprite");
 var ctxMap = canvasMap.getContext("2d"),
@@ -43,6 +45,7 @@ window.addEventListener('keyup', function (e) {
 function Sprite(options) {
     this.x = options.x;
     this.y = options.y;
+    this.name = options.name;
     this.width = options.width || 100;
     this.height = options.height || 100;
     this.speed = options.speed || 5;
@@ -55,28 +58,29 @@ function Sprite(options) {
     this.clipX = options.clipX || 0;
     this.pSX = options.pSX;
     this.pSY = options.pSY;
+    this.a = options.a;
+    this.b = options.b;
+    this.pA = options.pA;
+    this.pB = options.pB;
     this.compound = options.compoundY || 0;
     this.frames = options.frames || 4;
     this.currentFrame = options.currentFrame || 0;
 }
-var shiftX = 0, shiftY = 0;
 
-//Sprite Definitions
-var player = new Sprite({
-    x: shiftX * dim,
-    y: shiftY * dim,
-    width: 32,
-    height: 48,
-    speed: 10,
-    frames: 3
-});
+function drawStaticSprite(sprite){
+    ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+}
+
+function destroySprite(sprite){
+    ctxSpr.clearRect(sprite.x, sprite.y, sprite.width, sprite.height);
+}
 
 //Sprite Drawing
 function drawSprite(sprite) {
 
     if ((65 in keys || 68 in keys || 87 in keys || 83 in keys) && !sprite.isPaused) {
 
-        ctxSpr.clearRect(0, 0, canvasSprite.width, canvasSprite.height);
+        ctxSpr.clearRect(sprite.pSX, sprite.pSY, sprite.width, sprite.height);
 
 
         if (65 in keys) {
@@ -92,6 +96,7 @@ function drawSprite(sprite) {
             sprite.compound = 0;
             sprite.y += sprite.speed;
         }
+        socket.emit('∆', sprite);
 
         if (65 in keys || 68 in keys || 87 in keys || 83 in keys) {
             ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
@@ -105,7 +110,7 @@ function drawSprite(sprite) {
             sprite.currentFrame++;
         }
     } else {
-        ctxSpr.clearRect(0, 0, canvasSprite.width, canvasSprite.height);
+        ctxSpr.clearRect(sprite.pSX, sprite.pSY, sprite.width, sprite.height);
         ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
     }
 }
@@ -261,14 +266,13 @@ function cJSONtTileMap(json) { //JSON Conversion to tileMap syntax # to Mephisto
 
 var mainMap = cJSONtTileMap(mainMapJSON); //The dungeon map in good 2d mode.
 /** PORT COLLISION *******************************************************/
-var a = 0, b = 0;
 
 function portCollision(sprite, tileMap) {
     if (sprite.x + dim > canvasMap.width / 2 + dim) {
 
 
-        if (a < ((tileMap[0].length * sprite.width) - (canvasMap.width)) / sprite.speed) {
-            a++;
+        if (sprite.a < ((tileMap.length * dim) - (canvasMap.width)) / sprite.speed) {
+            sprite.a++;
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
 
             //tilesX -= sprite.speed;
@@ -294,8 +298,8 @@ function portCollision(sprite, tileMap) {
     }
 
     if (sprite.y + sprite.height > canvasMap.height / 2 + sprite.height) {
-        if (b < ((tileMap.length * dim) - canvasMap.height) / sprite.speed) {
-            b++;
+        if (sprite.b < ((tileMap.length * dim) - canvasMap.height) / sprite.speed) {
+            sprite.b++;
 
 
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
@@ -312,8 +316,8 @@ function portCollision(sprite, tileMap) {
 
         }
     }
-    if (sprite.x < canvasMap.width / 2 && a > 0) {
-        a--;
+    if (sprite.x < canvasMap.width / 2 && sprite.a > 0) {
+        sprite.a--;
 
 
         ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
@@ -329,8 +333,8 @@ function portCollision(sprite, tileMap) {
 
 
     }
-    if ((sprite.y < canvasMap.height / 2 - sprite.height) && b > 0) {
-        b--;
+    if ((sprite.y < canvasMap.height / 2 - sprite.height) && sprite.b > 0) {
+        sprite.b--;
 
 
         ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
@@ -351,7 +355,7 @@ function portCollision(sprite, tileMap) {
     if (sprite.y < 0) {
         sprite.y = 0;
     }
-    if(sprite.y + sprite.height > canvasMap.height){
+    if (sprite.y + sprite.height > canvasMap.height) {
         sprite.y = sprite.pSY;
     }
     /// for (i = 0; i < monsterArray.length; i++)
@@ -371,12 +375,56 @@ function OneDtoTwoD(list, elementsPerSubArray) { //Converting 1d array to 2d Arr
 
     return matrix;
 }
+
+var shiftX = 0, shiftY = 0;
+var player;
+function newPlayer() {
+    var rand = Math.floor(Math.random() * 999);
+
+//Sprite Definitions
+    var user = new Sprite({
+        name:'user ' + rand,
+        x: shiftX * dim,
+        y: shiftY * dim,
+        a: 0,
+        b: 0,
+        width: 32,
+        height: 48,
+        speed: 10,
+        frames: 3
+    });
+
+    socket.emit('init player', user);
+    player = user;
+}
+
+socket.on('add player', function (players) {
+    for (var i in players) {
+        if (players[i].name != players.name) {
+            drawStaticSprite(players[i]);
+        }
+    }
+});
+
+socket.on('∆', function (player) {
+    ctxSpr.clearRect(player.pSX, player.pSY, player.width, player.height);
+    drawStaticSprite(player);
+});
+
+socket.on('destroy player', function (player) {
+    destroySprite(player);
+});
 function gameThread() {
+    player.pSX = player.x;
+    player.pSY = player.y;
+    player.pA = player.a;
+    player.pB = player.b;
     drawSprite(player);
     portCollision(player, mainMap);
 }
 
 function gameLoop() {
+    newPlayer();
     setInterval(gameThread, 30);
 }
 
