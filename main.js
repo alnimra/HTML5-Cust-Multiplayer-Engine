@@ -110,7 +110,7 @@ function drawSprite(sprite) {
     }
 }
 
-/** TILE *****************************************************************/
+/** TILE MAP *****************************************************************/
 //Tile Definitions
 function Tile(options) {
     this.width = options.width || 32;
@@ -260,7 +260,95 @@ function cJSONtTileMap(json) { //JSON Conversion to tileMap syntax # to Mephisto
 }
 
 var mainMap = cJSONtTileMap(mainMapJSON); //The dungeon map in good 2d mode.
+/** PORT COLLISION *******************************************************/
+var a = 0, b = 0;
 
+function portCollision(sprite, tileMap) {
+    if (sprite.x + dim > canvasMap.width / 2 + dim) {
+
+
+        if (a < ((tileMap[0].length * dim) - (canvasMap.width)) / (sprite.speed)) {
+            a++;
+            ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+
+            //tilesX -= sprite.speed;
+            sprite.x = canvasMap.width / 2 + dim - dim;
+            // if (!monster.isActive) {
+         //   ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+         //   for (var i = 0; i < monsterArray.length; i++)
+         //       monsterArray[i].x -= sprite.speed;
+            // }
+            ctxMap.translate(-sprite.speed, 0);
+            drawMap(tileMap);
+
+
+        } else if (sprite.x + dim > canvasMap.width) {
+            sprite.x = sprite.pSX;
+        }
+    } else if (sprite.x < 0) {
+        sprite.x = 0;
+    }
+    if (sprite.y + sprite.height > canvasMap.height / 2 + dim) {
+        if (b < ((tileMap.length * dim - (canvasMap.height)) / (sprite.speed)) + (2.7 * dim) / sprite.speed) {
+            b++;
+
+
+            ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+            sprite.y = canvasMap.height / 2 + dim - sprite.height;
+
+            //if (!monster.isActive) {
+           // ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+           // for (var k = 0; k < monsterArray.length; k++)
+         //       monsterArray[k].y -= sprite.speed;
+            // }
+            ctxMap.translate(0, -sprite.speed);
+            drawMap(tileMap);
+
+
+        }
+    }
+    if (sprite.x < canvasMap.width / 2 && a > 0) {
+        a--;
+
+
+        ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+        sprite.x = canvasMap.width / 2;
+        // tilesX -= sprite.speed;
+        //  if (!monster.isActive) {
+      //  ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+       // for (i = 0; i < monsterArray.length; i++)
+        //    monsterArray[i].x += sprite.speed;
+        //  }
+        ctxMap.translate(sprite.speed, 0);
+        drawMap(tileMap);
+
+
+    }
+    if (sprite.y < canvasMap.height / 2 - dim && b > 0) {
+        b--;
+
+
+        ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+        sprite.y = canvasMap.height / 2 - dim;
+
+        ctxMap.translate(0, sprite.speed);
+        drawMap(tileMap);
+
+
+        //  if (!monster.isActive) {
+
+        //ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+        //for (i = 0; i < monsterArray.length; i++)
+        //    monsterArray[i].y += sprite.speed;
+        //  }
+
+    }
+    if (sprite.y < 0) {
+        sprite.y = 0;
+    }
+   /// for (i = 0; i < monsterArray.length; i++)
+    //    drawStaticMonster(monsterArray[i]);
+}
 function OneDtoTwoD(list, elementsPerSubArray) { //Converting 1d array to 2d Array
     var matrix = [], i, k;
 
@@ -277,7 +365,7 @@ function OneDtoTwoD(list, elementsPerSubArray) { //Converting 1d array to 2d Arr
 }
 function gameThread() {
     drawSprite(player);
-    drawMap(mainMap);
+    portCollision(player, mainMap);
 }
 
 function gameLoop() {
@@ -293,6 +381,7 @@ loadImage('media/mediaSheet.png', function (error, imgMediaSheet) {
     loadImage('media/spriteSheet.png', function (error, imgSpriteSheet) {
         if (error) return console.error(error);
         spriteSheetImg = imgSpriteSheet;
+        drawMap(mainMap)
         gameLoop();
     });
 
