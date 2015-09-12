@@ -51,7 +51,7 @@ function Sprite(options) {
     this.speed = options.speed || 5;
     this.health = options.health || 300;
     this.isBattleActive = options.isBattleActive || false;
-    this.isPaused = options.isPaused || true;
+    this.isActive = options.isActive || true;
     this.isCollide = options.isCollide || false;
     this.hasAttacked = options.hasAttacked || false;
     this.credits = options.credits || 0;
@@ -79,6 +79,7 @@ function destroySprite(sprite) {
 function drawSprite(sprite) {
 
     if ((65 in keys || 68 in keys || 87 in keys || 83 in keys)) {
+        sprite.isActive = true;
         ctxSpr.clearRect(sprite.pSX - sprite.speed, sprite.pSY - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
 
 
@@ -102,7 +103,9 @@ function drawSprite(sprite) {
             ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
 
         }
-        socket.emit('∆', sprite);
+        if(sprite.isActive != false){
+            socket.emit('∆', sprite);
+        }
 
         if (sprite.currentFrame == sprite.frames) {
             sprite.currentFrame = 0;
@@ -110,6 +113,8 @@ function drawSprite(sprite) {
             sprite.currentFrame++;
         }
     } else {
+        sprite.isActive = false;
+        socket.emit('need players array');
         ctxSpr.clearRect(sprite.pSX - sprite.speed, sprite.pSY - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
         ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
     }
@@ -268,143 +273,141 @@ var mainMap = cJSONtTileMap(mainMapJSON); //The dungeon map in good 2d mode.
 /** PORT COLLISION *******************************************************/
 
 function portCollision(sprite, tileMap) {
-    socket.emit('need players array');
-    socket.on('need players array', function (players) {
+
+    if (sprite.x + dim > canvasMap.width / 2 + dim) {
 
 
-        if (sprite.x + dim > canvasMap.width / 2 + dim) {
-
-
-            if (sprite.a < ((tileMap.length * dim) - (canvasMap.width)) / sprite.speed) {
-                sprite.a++;
-                ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-
-                //tilesX -= sprite.speed;
-                sprite.x = canvasMap.width / 2;
-                // if (!monster.isActive) {
-                //   ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
-
-
-                //   for (var i = 0; i < monsterArray.length; i++)
-                //       monsterArray[i].x -= sprite.speed;
-                // }
-                ctxMap.translate(-sprite.speed, 0);
-                drawMap(tileMap);
-
-                for (var j in players) {
-                    if (players[j].name != sprite.name) {
-                        //if (players[j].isPaused == true) {
-                            players[j].x -= sprite.speed;
-                            ctxSpr.clearRect(players[j].pSX - sprite.speed, players[j].pSY - sprite.speed, players[j].width + 2 * sprite.speed, players[j].height + 2 * sprite.speed);
-                            drawStaticSprite(players[j]);
-                       // }
-
-                    }
-                }
-
-
-            } else if (sprite.x + dim > canvasMap.width) {
-                sprite.x = sprite.pSX;
-            }
-        } else if (sprite.x < 0) {
-            sprite.x = 0;
-        }
-        if (sprite.x + sprite.width > canvasMap.width) {
-            sprite.x = canvasMap.width - sprite.width;
-        }
-
-        if (sprite.y + sprite.height > canvasMap.height / 2 + sprite.height) {
-            if (sprite.b < ((tileMap.length * dim) - canvasMap.height) / sprite.speed) {
-                sprite.b++;
-
-
-                ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-                sprite.y = canvasMap.height / 2;
-                for (var k in players) {
-                    if (players[k].name != sprite.name) {
-                        //if (players[i].isPaused == true) {
-                            players[k].y -= sprite.speed;
-                            ctxSpr.clearRect(players[k].pSX - sprite.speed, players[k].pSY - sprite.speed, players[k].width + 2 * sprite.speed, players[k].height + 2 * sprite.speed);
-                            drawStaticSprite(players[k]);
-                      //  }
-
-                    }
-                }
-                //if (!monster.isActive) {
-                // ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
-                // for (var k = 0; k < monsterArray.length; k++)
-                //       monsterArray[k].y -= sprite.speed;
-                // }
-                ctxMap.translate(0, -sprite.speed);
-                drawMap(tileMap);
-
-
-            }
-        }
-        if (sprite.x < canvasMap.width / 2 && sprite.a > 0) {
-            sprite.a--;
-
-
+        if (sprite.a < ((tileMap.length * dim) - (canvasMap.width)) / sprite.speed) {
+            sprite.a++;
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+
+            //tilesX -= sprite.speed;
             sprite.x = canvasMap.width / 2;
-            // tilesX -= sprite.speed;
-            for (var r in players) {
-                if (players[r].name != sprite.name) {
-                   // if (players[r].isPaused == true) {
-                        players[r].x += sprite.speed;
-                        ctxSpr.clearRect(players[r].pSX - sprite.speed, players[r].pSY - sprite.speed, players[r].width + 2 * sprite.speed, players[r].height + 2 * sprite.speed);
-                        drawStaticSprite(players[r]);
-                    //}
+            // if (!monster.isActive) {
+            //   ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+            for (var j in players) {
+                if (players[j].name != sprite.name) {
+                    if (players[j].isActive == false) {
+                        ctxSpr.clearRect(players[j].x - sprite.speed, players[j].y - sprite.speed, players[j].width + 2 * sprite.speed, players[j].height + 2 * sprite.speed);
+                        players[j].x -= sprite.speed;
+                        socket.emit('player pos', players[j]);
+                        drawStaticSprite(players[j]);
+                    }
 
                 }
             }
-            //  if (!monster.isActive) {
-            //  ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
-            // for (i = 0; i < monsterArray.length; i++)
-            //    monsterArray[i].x += sprite.speed;
-            //  }
-            ctxMap.translate(sprite.speed, 0);
+
+            //   for (var i = 0; i < monsterArray.length; i++)
+            //       monsterArray[i].x -= sprite.speed;
+            // }
+            ctxMap.translate(-sprite.speed, 0);
             drawMap(tileMap);
 
 
+        } else if (sprite.x + dim > canvasMap.width) {
+            sprite.x = sprite.pSX;
         }
-        if ((sprite.y < canvasMap.height / 2 - sprite.height) && sprite.b > 0) {
-            sprite.b--;
+    } else if (sprite.x < 0) {
+        sprite.x = 0;
+    }
+    if (sprite.x + sprite.width > canvasMap.width) {
+        sprite.x = canvasMap.width - sprite.width;
+    }
+
+    if (sprite.y + sprite.height > canvasMap.height / 2 + sprite.height) {
+        if (sprite.b < ((tileMap.length * dim) - canvasMap.height) / sprite.speed) {
+            sprite.b++;
 
 
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-            sprite.y = canvasMap.height / 2 - sprite.height;
-
-            ctxMap.translate(0, sprite.speed);
-            drawMap(tileMap);
-
-            for (var x in players) {
-                if (players[x].name != sprite.name) {
-                  //  if (players[x].isPaused == true) {
-                        players[x].y += sprite.speed;
-                        ctxSpr.clearRect(players[x].pSX - sprite.speed, players[x].pSY - sprite.speed, players[x].width + 2 * sprite.speed, players[x].height + 2 * sprite.speed);
-                        drawStaticSprite(players[x]);
-                   // }
+            sprite.y = canvasMap.height / 2;
+            for (var k in players) {
+                if (players[k].name != sprite.name) {
+                    if (players[k].isActive == false) {
+                        ctxSpr.clearRect(players[k].x - sprite.speed, players[k].y - sprite.speed, players[k].width + 2 * sprite.speed, players[k].height + 2 * sprite.speed);
+                        players[k].y -= sprite.speed;
+                        socket.emit('player pos', players[k]);
+                        drawStaticSprite(players[k]);
+                    }
 
                 }
             }
-            //  if (!monster.isActive) {
+            //if (!monster.isActive) {
+            // ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+            // for (var k = 0; k < monsterArray.length; k++)
+            //       monsterArray[k].y -= sprite.speed;
+            // }
+            ctxMap.translate(0, -sprite.speed);
+            drawMap(tileMap);
 
-            //ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
-            //for (i = 0; i < monsterArray.length; i++)
-            //    monsterArray[i].y += sprite.speed;
-            //  }
 
         }
-        if (sprite.y < 0) {
-            sprite.y = 0;
+    }
+    if (sprite.x < canvasMap.width / 2 && sprite.a > 0) {
+        sprite.a--;
+
+
+        ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+        sprite.x = canvasMap.width / 2;
+        // tilesX -= sprite.speed;
+        for (var r in players) {
+            if (players[r].name != sprite.name) {
+                if (players[r].isActive == false) {
+                    ctxSpr.clearRect(players[r].x - sprite.speed, players[r].y - sprite.speed, players[r].width + 2 * sprite.speed, players[r].height + 2 * sprite.speed);
+                    players[r].x += sprite.speed;
+                    socket.emit('player pos', players[r]);
+                    drawStaticSprite(players[r]);
+                }
+
+            }
         }
-        if (sprite.y + sprite.height > canvasMap.height) {
-            sprite.y = sprite.pSY;
+        //  if (!monster.isActive) {
+        //  ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+        // for (i = 0; i < monsterArray.length; i++)
+        //    monsterArray[i].x += sprite.speed;
+        //  }
+        ctxMap.translate(sprite.speed, 0);
+        drawMap(tileMap);
+
+
+    }
+    if ((sprite.y < canvasMap.height / 2 - sprite.height) && sprite.b > 0) {
+        sprite.b--;
+
+
+        ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
+        sprite.y = canvasMap.height / 2 - sprite.height;
+
+        ctxMap.translate(0, sprite.speed);
+        drawMap(tileMap);
+
+        for (var x in players) {
+            if (players[x].name != sprite.name) {
+                if (players[x].isActive == false) {
+                    ctxSpr.clearRect(players[x].x - sprite.speed, players[x].y - sprite.speed, players[x].width + 2 * sprite.speed, players[x].height + 2 * sprite.speed);
+                    players[x].y += sprite.speed;
+                    socket.emit('player pos', players[x]);
+                    drawStaticSprite(players[x]);
+                }
+
+            }
         }
-        /// for (i = 0; i < monsterArray.length; i++)
-        //    drawStaticMonster(monsterArray[i]);
-    });
+        //  if (!monster.isActive) {
+
+        //ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+        //for (i = 0; i < monsterArray.length; i++)
+        //    monsterArray[i].y += sprite.speed;
+        //  }
+
+    }
+    if (sprite.y < 0) {
+        sprite.y = 0;
+    }
+    if (sprite.y + sprite.height > canvasMap.height) {
+        sprite.y = sprite.pSY;
+    }
+    /// for (i = 0; i < monsterArray.length; i++)
+    //    drawStaticMonster(monsterArray[i]);
 }
 function OneDtoTwoD(list, elementsPerSubArray) { //Converting 1d array to 2d Array
     var matrix = [], i, k;
@@ -455,6 +458,11 @@ socket.on('∆', function (pl) {
     ctxSpr.clearRect(pl.pSX, pl.pSY, pl.width, pl.height);
 
     drawStaticSprite(pl);
+});
+
+var players;
+socket.on('need players array', function (pl) {
+    players = pl;
 });
 
 socket.on('destroy player', function (player) {

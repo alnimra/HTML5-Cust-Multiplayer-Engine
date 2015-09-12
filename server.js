@@ -7,7 +7,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var players = [];
 var ids = {};
-
+var id = null;
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/index.html');
 });
@@ -24,7 +24,18 @@ io.on('connection', function (socket) {
         io.emit('add player', players);
     });
 
+    socket.on('player pos', function (player) {
+        for (var i in players) {
+            if(players[i].name == player.name){
+                players[i] = player;
+            }
+        }
+    });
 
+    socket.on('need players array', function () {
+        id = socket.id;
+        socket.broadcast.emit('need players array', players);
+    });
     socket.on('∆', function (player) {
 
         for (var i in players) {
@@ -47,9 +58,6 @@ io.on('connection', function (socket) {
 
             }
         }
-        socket.on('need players array', function () {
-            socket.emit('need players array', players);
-        });
 
 
         socket.broadcast.emit('∆', player);
@@ -72,4 +80,3 @@ io.on('connection', function (socket) {
 http.listen(3000, function () {
     console.log('listening on *:3000');
 });
-
