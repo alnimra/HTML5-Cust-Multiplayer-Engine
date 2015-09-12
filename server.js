@@ -26,11 +26,11 @@ io.on('connection', function (socket) {
 
 
     socket.on('∆', function (player) {
+
         for (var i in players) {
             if (players[i].name == player.name) {
                 player.pSX = players[i].x;
                 player.pSY = players[i].y;
-
 
 
                 if (player.pA > player.a) {
@@ -47,6 +47,9 @@ io.on('connection', function (socket) {
 
             }
         }
+        socket.on('need players array', function () {
+            socket.emit('need players array', players);
+        });
 
 
         socket.broadcast.emit('∆', player);
@@ -63,7 +66,8 @@ io.on('connection', function (socket) {
         console.log('user disconnected');
     });
 
-});
+})
+;
 
 http.listen(3000, function () {
     console.log('listening on *:3000');
