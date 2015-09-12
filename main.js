@@ -1,11 +1,13 @@
 /**
  * Created by ipsum on 9/12/15.
  */
-var canvasMap = document.getElementById("map"); //Main Map for player
-var ctxMap = canvasMap.getContext("2d");
+var canvasMap = document.getElementById("map"),//Main Map for player
+    canvasSprite = document.getElementById("sprite");
+var ctxMap = canvasMap.getContext("2d"),
+    ctxSpr = canvasSprite.getContext("2d");
 
-canvasMap.width = window.innerWidth;
-canvasMap.height = window.innerHeight;
+canvasSprite.width = canvasMap.width = window.innerWidth;
+canvasSprite.height = canvasMap.height = window.innerHeight;
 
 /** IMAGE HANDLING *******************************************************/
 var dim = 32;
@@ -36,6 +38,77 @@ window.addEventListener('keyup', function (e) {
     delete keys[e.keyCode];
 });
 
+/** SPRITE HANDLING ******************************************************/
+//Sprite Object
+function Sprite(options) {
+    this.x = options.x;
+    this.y = options.y;
+    this.width = options.width || 100;
+    this.height = options.height || 100;
+    this.speed = options.speed || 5;
+    this.health = options.health || 300;
+    this.isBattleActive = options.isBattleActive || false;
+    this.isPaused = options.isPaused || false;
+    this.isCollide = options.isCollide || false;
+    this.hasAttacked = options.hasAttacked || false;
+    this.credits = options.credits || 0;
+    this.clipX = options.clipX || 0;
+    this.pSX = options.pSX;
+    this.pSY = options.pSY;
+    this.compound = options.compoundY || 0;
+    this.frames = options.frames || 4;
+    this.currentFrame = options.currentFrame || 0;
+}
+var shiftX = 0, shiftY = 0;
+
+//Sprite Definitions
+var player = new Sprite({
+    x: shiftX * dim,
+    y: shiftY * dim,
+    width: 32,
+    height: 48,
+    speed: 10,
+    frames: 3
+});
+
+//Sprite Drawing
+function drawSprite(sprite) {
+
+    if ((65 in keys || 68 in keys || 87 in keys || 83 in keys) && !sprite.isPaused) {
+
+        ctxSpr.clearRect(0, 0, canvasSprite.width, canvasSprite.height);
+
+
+        if (65 in keys) {
+            sprite.compound = 1;
+            sprite.x -= sprite.speed;
+        } else if (68 in keys) {
+            sprite.compound = 2;
+            sprite.x += sprite.speed;
+        } else if (87 in keys) {
+            sprite.compound = 3;
+            sprite.y -= sprite.speed;
+        } else if (83 in keys) {
+            sprite.compound = 0;
+            sprite.y += sprite.speed;
+        }
+
+        if (65 in keys || 68 in keys || 87 in keys || 83 in keys) {
+            ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+        } else {
+            ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+
+        }
+        if (sprite.currentFrame == sprite.frames) {
+            sprite.currentFrame = 0;
+        } else {
+            sprite.currentFrame++;
+        }
+    } else {
+        ctxSpr.clearRect(0, 0, canvasSprite.width, canvasSprite.height);
+        ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+    }
+}
 
 /** TILE *****************************************************************/
 //Tile Definitions
@@ -203,6 +276,7 @@ function OneDtoTwoD(list, elementsPerSubArray) { //Converting 1d array to 2d Arr
     return matrix;
 }
 function gameThread() {
+    drawSprite(player);
     drawMap(mainMap);
 }
 
@@ -211,11 +285,15 @@ function gameLoop() {
 }
 
 //Load Image Variables
-var mediaSheetImg;
+var mediaSheetImg, spriteSheetImg;
 
 loadImage('media/mediaSheet.png', function (error, imgMediaSheet) {
     if (error) return console.error(error);
     mediaSheetImg = imgMediaSheet;
-    gameLoop();
+    loadImage('media/spriteSheet.png', function (error, imgSpriteSheet) {
+        if (error) return console.error(error);
+        spriteSheetImg = imgSpriteSheet;
+        gameLoop();
+    });
 
 });
