@@ -28,6 +28,11 @@ io.on('connection', function (socket) {
     socket.on('∆', function (player) {
         for (var i in players) {
             if (players[i].name == player.name) {
+                player.pSX = players[i].x;
+                player.pSY = players[i].y;
+
+
+
                 if (player.pA > player.a) {
                     player.x -= player.a * player.speed;
                 } else {

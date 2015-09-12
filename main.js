@@ -67,11 +67,12 @@ function Sprite(options) {
     this.currentFrame = options.currentFrame || 0;
 }
 
-function drawStaticSprite(sprite){
+function drawStaticSprite(sprite) {
+
     ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
 }
 
-function destroySprite(sprite){
+function destroySprite(sprite) {
     ctxSpr.clearRect(sprite.x, sprite.y, sprite.width, sprite.height);
 }
 
@@ -96,7 +97,6 @@ function drawSprite(sprite) {
             sprite.compound = 0;
             sprite.y += sprite.speed;
         }
-        socket.emit('∆', sprite);
 
         if (65 in keys || 68 in keys || 87 in keys || 83 in keys) {
             ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
@@ -104,6 +104,8 @@ function drawSprite(sprite) {
             ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
 
         }
+        socket.emit('∆', sprite);
+
         if (sprite.currentFrame == sprite.frames) {
             sprite.currentFrame = 0;
         } else {
@@ -383,7 +385,7 @@ function newPlayer() {
 
 //Sprite Definitions
     var user = new Sprite({
-        name:'user ' + rand,
+        name: 'user ' + rand,
         x: shiftX * dim,
         y: shiftY * dim,
         a: 0,
@@ -406,9 +408,10 @@ socket.on('add player', function (players) {
     }
 });
 
-socket.on('∆', function (player) {
-    ctxSpr.clearRect(player.pSX, player.pSY, player.width, player.height);
-    drawStaticSprite(player);
+socket.on('∆', function (pl) {
+    ctxSpr.clearRect(pl.pSX , pl.pSY, pl.width, pl.height);
+
+    drawStaticSprite(pl);
 });
 
 socket.on('destroy player', function (player) {
