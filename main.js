@@ -5,12 +5,10 @@ var socket = io();
 
 var canvasMap = document.getElementById("map"),//Main Map for player
     canvasSprite = document.getElementById("sprite");
-var ctxMap = canvasMap.getContext("2d"),
-    ctxSpr = canvasSprite.getContext("2d");
+var ctxMap = canvasMap.getContext("2d");
 
 canvasSprite.width = canvasMap.width = window.innerWidth;
 canvasSprite.height = canvasMap.height = window.innerHeight;
-
 /** IMAGE HANDLING *******************************************************/
 var dim = 32;
 
@@ -65,14 +63,16 @@ function Sprite(options) {
     this.compound = options.compoundY || 0;
     this.frames = options.frames || 4;
     this.currentFrame = options.currentFrame || 0;
+    this.canvasNum = options.canvasNum || -1;
+    this.socketId = options.socketId;
 }
 
 function drawStaticSprite(sprite) {
-    ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+    ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
 }
 
 function destroySprite(sprite) {
-    ctxSpr.clearRect(sprite.x, sprite.y, sprite.width, sprite.height);
+    ctxs[player.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
 }
 
 //Sprite Drawing
@@ -80,8 +80,7 @@ function drawSprite(sprite) {
 
     if ((65 in keys || 68 in keys || 87 in keys || 83 in keys)) {
         sprite.isActive = true;
-        ctxSpr.clearRect(sprite.pSX - sprite.speed, sprite.pSY - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
-
+        ctxs[player.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
 
         if (65 in keys) {
             sprite.compound = 1;
@@ -98,14 +97,12 @@ function drawSprite(sprite) {
         }
 
         if (65 in keys || 68 in keys || 87 in keys || 83 in keys) {
-            ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+            ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
         } else {
-            ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+            ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
 
         }
-        if(sprite.isActive != false){
-            socket.emit('∆', sprite);
-        }
+        socket.emit('∆', player);
 
         if (sprite.currentFrame == sprite.frames) {
             sprite.currentFrame = 0;
@@ -115,8 +112,8 @@ function drawSprite(sprite) {
     } else {
         sprite.isActive = false;
         socket.emit('need players array');
-        ctxSpr.clearRect(sprite.pSX - sprite.speed, sprite.pSY - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
-        ctxSpr.drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+        ctxs[player.canvasNum].clearRect(sprite.x - sprite.speed, sprite.y - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
+        ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
     }
 }
 
@@ -270,25 +267,49 @@ function cJSONtTileMap(json) { //JSON Conversion to tileMap syntax # to Mephisto
 }
 
 var mainMap = cJSONtTileMap(mainMapJSON); //The dungeon map in good 2d mode.
+/** DYNAMICALLY CREATE CANVASES PER USER *********************************/
+var userNum = 0;
+var canvassLayers = {};
+var ctxs = {};
+function createCanvas(pl, playersArray) {
+    for (var i in playersArray) {
+        if (playersArray[i].name == pl.name) {
+            pl.canvasNum = i;
+        }
+    }
+    var canvas = document.createElement('canvas');
+    canvas.id = "canvas" + pl.canvasNum;
+    console.log(canvas.id);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.zIndex = pl.canvasNum;
+    canvas.style.position = "absolute";
+    var body = document.getElementsByTagName("body")[0];
+    body.appendChild(canvas);
+    canvassLayers[pl.canvasNum] = canvas;
+    ctxs[pl.canvasNum] = canvassLayers[pl.canvasNum].getContext("2d");
+
+
+}
 /** PORT COLLISION *******************************************************/
 
 function portCollision(sprite, tileMap) {
 
-    if (sprite.x + dim > canvasMap.width / 2 + dim) {
+    if (sprite.x > (canvasMap.width / 2)) {
 
 
-        if (sprite.a < ((tileMap.length * dim) - (canvasMap.width)) / sprite.speed) {
+        if (sprite.a < ((tileMap[0].length * dim) - (canvasMap.width)) / sprite.speed) {
             sprite.a++;
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
 
             //tilesX -= sprite.speed;
-            sprite.x = canvasMap.width / 2;
+            sprite.x = (canvasMap.width / 2);
             // if (!monster.isActive) {
             //   ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
             for (var j in players) {
                 if (players[j].name != sprite.name) {
-                    if (players[j].isActive == false) {
-                        ctxSpr.clearRect(players[j].x - sprite.speed, players[j].y - sprite.speed, players[j].width + 2 * sprite.speed, players[j].height + 2 * sprite.speed);
+                    ctxs[player.canvasNum].clearRect(players[j].x - players[j].speed, players[j].y - players[j].speed, players[j].width + 2 * players[j].speed, players[j].height + 2 * players[j].speed);
+                    if (players[j].isActive == true) {
                         players[j].x -= sprite.speed;
                         socket.emit('player pos', players[j]);
                         drawStaticSprite(players[j]);
@@ -304,17 +325,14 @@ function portCollision(sprite, tileMap) {
             drawMap(tileMap);
 
 
-        } else if (sprite.x + dim > canvasMap.width) {
+        } else if (sprite.x + sprite.width > canvasMap.width) {
             sprite.x = sprite.pSX;
         }
     } else if (sprite.x < 0) {
         sprite.x = 0;
     }
-    if (sprite.x + sprite.width > canvasMap.width) {
-        sprite.x = canvasMap.width - sprite.width;
-    }
 
-    if (sprite.y + sprite.height > canvasMap.height / 2 + sprite.height) {
+    if (sprite.y > canvasMap.height / 2) {
         if (sprite.b < ((tileMap.length * dim) - canvasMap.height) / sprite.speed) {
             sprite.b++;
 
@@ -323,8 +341,9 @@ function portCollision(sprite, tileMap) {
             sprite.y = canvasMap.height / 2;
             for (var k in players) {
                 if (players[k].name != sprite.name) {
-                    if (players[k].isActive == false) {
-                        ctxSpr.clearRect(players[k].x - sprite.speed, players[k].y - sprite.speed, players[k].width + 2 * sprite.speed, players[k].height + 2 * sprite.speed);
+                    ctxs[player.canvasNum].clearRect(players[k].x - players[k].speed, players[k].y - players[k].speed, players[k].width + 2 * players[k].speed, players[k].height + 2 * players[k].speed);
+
+                    if (players[k].isActive == true) {
                         players[k].y -= sprite.speed;
                         socket.emit('player pos', players[k]);
                         drawStaticSprite(players[k]);
@@ -352,8 +371,8 @@ function portCollision(sprite, tileMap) {
         // tilesX -= sprite.speed;
         for (var r in players) {
             if (players[r].name != sprite.name) {
-                if (players[r].isActive == false) {
-                    ctxSpr.clearRect(players[r].x - sprite.speed, players[r].y - sprite.speed, players[r].width + 2 * sprite.speed, players[r].height + 2 * sprite.speed);
+                ctxs[player.canvasNum].clearRect(players[r].x - players[r].speed, players[r].y - players[r].speed, players[r].width + 2 * players[r].speed, players[r].height + 2 * players[r].speed);
+                if (players[r].isActive == true) {
                     players[r].x += sprite.speed;
                     socket.emit('player pos', players[r]);
                     drawStaticSprite(players[r]);
@@ -367,24 +386,25 @@ function portCollision(sprite, tileMap) {
         //    monsterArray[i].x += sprite.speed;
         //  }
         ctxMap.translate(sprite.speed, 0);
+
         drawMap(tileMap);
 
 
     }
-    if ((sprite.y < canvasMap.height / 2 - sprite.height) && sprite.b > 0) {
+    if ((sprite.y < canvasMap.height / 2) && sprite.b > 0) {
         sprite.b--;
 
 
         ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-        sprite.y = canvasMap.height / 2 - sprite.height;
+        sprite.y = canvasMap.height / 2;
 
         ctxMap.translate(0, sprite.speed);
         drawMap(tileMap);
 
         for (var x in players) {
             if (players[x].name != sprite.name) {
-                if (players[x].isActive == false) {
-                    ctxSpr.clearRect(players[x].x - sprite.speed, players[x].y - sprite.speed, players[x].width + 2 * sprite.speed, players[x].height + 2 * sprite.speed);
+                ctxs[player.canvasNum].clearRect(players[x].x - players[x].speed, players[x].y - players[x].speed, players[x].width + 2 * players[x].speed, players[x].height + 2 * players[x].speed);
+                if (players[x].isActive == true) {
                     players[x].y += sprite.speed;
                     socket.emit('player pos', players[x]);
                     drawStaticSprite(players[x]);
@@ -428,7 +448,6 @@ var shiftX = 0, shiftY = 0;
 var player = null;
 function newPlayer() {
     var rand = Math.floor(Math.random() * 999);
-
 //Sprite Definitions
     var user = new Sprite({
         name: 'user ' + rand,
@@ -439,11 +458,42 @@ function newPlayer() {
         width: 32,
         height: 48,
         speed: 10,
-        frames: 3
+        frames: 3,
+        userNum: userNum
     });
 
     socket.emit('init player', user);
+
     player = user;
+    socket.emit('createCanvas');
+    player.socketId = socket.id;
+    socket.on('createCanvas', function (players) {
+        var tempCanvasNum = player.canvasNum;
+        createCanvas(player, players);
+        if(tempCanvasNum != -1){
+            player.canvasNum = tempCanvasNum;
+        }
+    });
+    socket.on('createPseudoCanvas', function (players) {
+        if(ctxs.length != players.length){
+            console.log('pseudo');
+            for (var i in players) {
+                if (players[i].name != player.name) {
+                    createCanvas(players[i], players);
+                    console.log('psuedo ' + i);
+                }
+            }
+        }
+
+
+    });
+    setInterval(gameThread, 30);
+
+    //  socket.emit('need players array now');
+    //  socket.on('need players array now', function(playersArray){
+    //  createCanvas(player, playersArray);
+    //   });
+
 }
 
 socket.on('add player', function (players) {
@@ -454,15 +504,17 @@ socket.on('add player', function (players) {
     }
 });
 
-socket.on('∆', function (pl) {
-    ctxSpr.clearRect(pl.pSX, pl.pSY, pl.width, pl.height);
+socket.on('∆', function (player) {
+    console.log(ctxs[player.canvasNum]);
+    ctxs[player.canvasNum].clearRect(player.pSX, player.pSY, player.width, player.height);
+    drawStaticSprite(player);
 
-    drawStaticSprite(pl);
+
 });
 
 var players;
-socket.on('need players array', function (pl) {
-    players = pl;
+socket.on('need players array', function (pli) {
+    players = pli;
 });
 
 socket.on('destroy player', function (player) {
@@ -473,14 +525,19 @@ function gameThread() {
     player.pSY = player.y;
     player.pA = player.a;
     player.pB = player.b;
+
     drawSprite(player);
     portCollision(player, mainMap);
+
 
 }
 
 function gameLoop() {
+    socket.emit('getUserNumData');
+    socket.on('fetchUserNumData', function (uN) {
+        userNum = uN;
+    });
     newPlayer();
-    setInterval(gameThread, 30);
 }
 
 //Load Image Variables
