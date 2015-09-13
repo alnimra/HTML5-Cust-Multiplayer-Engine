@@ -1,0 +1,35 @@
+WOOD - 1
+CLOTH - 1
+STONE - 1
+FOOD - 2
+WATER - 2
+IRON - 3
+OIL - 3
+CRYSTAL - 4
+
+TOTAL: 17
+		PROPORTIONAL TO INVERSE ^ 1.25:
+
+i.e. for 4:3:2:1 items, generate proportionally to 3.01(1) : 4.31(2) : 7.15(2) : 17(3) = 76.93 total
+
+approximating to whole numbers, every time a raw material generates, the probability of each is:
+WOOD - 22%
+CLOTH - 22%
+STONE - 22%
+FOOD - 9%
+WATER - 9%
+IRON - 6%
+OIL - 6%
+CRYSTAL - 4%
+
+		PROPORTIONAL TO INVERSE ^ 1
+generate prop. to 4.25(1) : 5.67(2) : 8.5(2) : 17(3) = 83.59 total
+
+WOOD - 20%
+CLOTH - 20%
+STONE - 20%
+FOOD - 10%
+WATER - 10%
+IRON - 7.5%
+OIL - 7.5%
+CRYSTAL - 5%
