@@ -68,7 +68,7 @@ function Sprite(options) {
 }
 
 function drawStaticSprite(sprite) {
-    ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+    ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
 }
 
 function destroySprite(sprite) {
@@ -308,7 +308,7 @@ function portCollision(sprite, tileMap) {
             //   ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
             for (var j in players) {
                 if (players[j].name != sprite.name) {
-                    ctxs[player.canvasNum].clearRect(players[j].x - players[j].speed, players[j].y - players[j].speed, players[j].width + 2 * players[j].speed, players[j].height + 2 * players[j].speed);
+                    ctxs[players[j].canvasNum].clearRect(players[j].x - players[j].speed, players[j].y - players[j].speed, players[j].width + 2 * players[j].speed, players[j].height + 2 * players[j].speed);
                     if (players[j].isActive == true) {
                         players[j].x -= sprite.speed;
                         socket.emit('player pos', players[j]);
@@ -341,7 +341,7 @@ function portCollision(sprite, tileMap) {
             sprite.y = canvasMap.height / 2;
             for (var k in players) {
                 if (players[k].name != sprite.name) {
-                    ctxs[player.canvasNum].clearRect(players[k].x - players[k].speed, players[k].y - players[k].speed, players[k].width + 2 * players[k].speed, players[k].height + 2 * players[k].speed);
+                    ctxs[players[k].canvasNum].clearRect(players[k].x - players[k].speed, players[k].y - players[k].speed, players[k].width + 2 * players[k].speed, players[k].height + 2 * players[k].speed);
 
                     if (players[k].isActive == true) {
                         players[k].y -= sprite.speed;
@@ -371,7 +371,7 @@ function portCollision(sprite, tileMap) {
         // tilesX -= sprite.speed;
         for (var r in players) {
             if (players[r].name != sprite.name) {
-                ctxs[player.canvasNum].clearRect(players[r].x - players[r].speed, players[r].y - players[r].speed, players[r].width + 2 * players[r].speed, players[r].height + 2 * players[r].speed);
+                ctxs[players[r].canvasNum].clearRect(players[r].x - players[r].speed, players[r].y - players[r].speed, players[r].width + 2 * players[r].speed, players[r].height + 2 * players[r].speed);
                 if (players[r].isActive == true) {
                     players[r].x += sprite.speed;
                     socket.emit('player pos', players[r]);
@@ -403,7 +403,7 @@ function portCollision(sprite, tileMap) {
 
         for (var x in players) {
             if (players[x].name != sprite.name) {
-                ctxs[player.canvasNum].clearRect(players[x].x - players[x].speed, players[x].y - players[x].speed, players[x].width + 2 * players[x].speed, players[x].height + 2 * players[x].speed);
+                ctxs[players[x].canvasNum].clearRect(players[x].x - players[x].speed, players[x].y - players[x].speed, players[x].width + 2 * players[x].speed, players[x].height + 2 * players[x].speed);
                 if (players[x].isActive == true) {
                     players[x].y += sprite.speed;
                     socket.emit('player pos', players[x]);
@@ -504,10 +504,10 @@ socket.on('add player', function (players) {
     }
 });
 
-socket.on('∆', function (player) {
-    console.log(ctxs[player.canvasNum]);
-    ctxs[player.canvasNum].clearRect(player.pSX, player.pSY, player.width, player.height);
-    drawStaticSprite(player);
+socket.on('∆', function (pl) {
+    console.log(pl.canvasNum);
+    ctxs[pl.canvasNum].clearRect(pl.x - pl.speed, pl.y - pl.speed, pl.width + 2 * pl.speed, pl.height + 2 * pl.speed);
+    drawStaticSprite(pl);
 
 
 });
