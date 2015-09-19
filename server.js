@@ -45,8 +45,8 @@ io.on('connection', function (socket) {
 
             }
         }
-        console.log('NEW THING\n');
-        console.log(players);
+        //console.log('NEW THING\n');
+       // console.log(players);
 
 
         socket.broadcast.emit('∆', user);

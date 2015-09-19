@@ -110,7 +110,7 @@ function drawSprite(sprite) {
             ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
 
         }
-        updateOtherPlayers();
+        //updateOtherPlayers();
         socket.emit('∆', sprite);
 
 
@@ -539,11 +539,11 @@ socket.on('add player', function (playersar) {
 
             createCanvas(rl, playersar);
 
-            ctxs[rl.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+          //  ctxs[rl.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
             rl.drawX = worldToDraw(rl, 'x');
             rl.drawY = worldToDraw(rl, 'y');
 
-            drawStaticPlayer(rl);
+          //  drawStaticPlayer(rl);
             console.log('add player worked ' + i);
 
         }
@@ -573,10 +573,10 @@ function updateOtherPlayers() {
 socket.on('∆', function (pl) {
     console.log('∆' + pl.canvasNum);
 
-    ctxs[pl.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+   // ctxs[pl.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
     pl.drawX = worldToDraw(pl, 'x');
     pl.drawY = worldToDraw(pl, 'y');
-    drawStaticPlayer(pl);
+  //  drawStaticPlayer(pl);
 
 
 });
@@ -598,13 +598,13 @@ function gameThread() {
 
     console.log('user.x  = ' + user.x);
     console.log('user.y  = ' + user.y);
-    //updateOtherPlayers();
+    updateOtherPlayers();
 
 
 
-
-    portCollision(user, mainMap);
     drawSprite(user);
+    portCollision(user, mainMap);
+
 
 
 }
