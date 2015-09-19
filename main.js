@@ -83,6 +83,7 @@ function destroySprite(sprite) {
 }
 
 //Sprite Drawing
+var one = 0;
 function drawSprite(sprite) {
 
     if ((65 in keys || 68 in keys || 87 in keys || 83 in keys)) {
@@ -109,7 +110,9 @@ function drawSprite(sprite) {
             ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
 
         }
+        updateOtherPlayers();
         socket.emit('∆', sprite);
+
 
         if (sprite.currentFrame == sprite.frames) {
             sprite.currentFrame = 0;
@@ -121,6 +124,11 @@ function drawSprite(sprite) {
         // multiplayerUpdate();
         ctxs[sprite.canvasNum].clearRect(sprite.localX - sprite.speed, sprite.localY - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
         ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
+
+        if(one != 1){
+            socket.emit('∆', sprite);
+            one = 1;
+        }
     }
 }
 
@@ -314,20 +322,10 @@ function localToWorld(client, dim) {
 
 
 function worldToDraw(player, dim) {
-    if (dim == 'x') {
-        if (user.a <= user.pA) {
-            return player.x + (user.a * user.speed);
-        } else if (user.a > user.pA)
-            return player.x - (user.a * user.speed);
-    }
-    if (dim == 'y') {
-        if (user.b <= user.pB) {
-            return player.y + (user.b * user.speed);
-        } else if (user.b > user.pB)
-            return player.y - (user.b * user.speed);
-    }
-
-
+    if (dim == 'x')
+        return player.x - (user.a * user.speed);
+    else if (dim == 'y')
+        return player.y - (user.b * user.speed);
 }
 /** PORT COLLISION *******************************************************/
 
@@ -362,7 +360,6 @@ function portCollision(sprite, tileMap) {
             //multiplayerUpdate();
 
             ctxMap.translate(-sprite.speed, 0);
-
             drawMap(tileMap);
             // multiplayerUpdate();
 
@@ -401,6 +398,7 @@ function portCollision(sprite, tileMap) {
             //multiplayerUpdate();
 
             ctxMap.translate(0, -sprite.speed);
+
             drawMap(tileMap);
             //  multiplayerUpdate();
 
@@ -447,6 +445,7 @@ function portCollision(sprite, tileMap) {
 
 
         ctxMap.translate(0, sprite.speed);
+
 
         drawMap(tileMap);
         //multiplayerUpdate();
@@ -525,8 +524,9 @@ function newUser() {
         /*if (tempCanvasNum != -1) {
          user.canvasNum = tempCanvasNum;
          }*/
+        setInterval(gameThread, 30);
     });
-    setInterval(gameThread, 30);
+
 
 
 }
@@ -551,18 +551,17 @@ socket.on('add player', function (playersar) {
     }
 });
 
-/*function updateOtherPlayer(playersArray){
- for(var i in playersArray){
- if(playersArray[i].name != user.name){
- var rl = playersArray[i];
- ctxs[rl.canvasNum].clearRect(0,0,canvasMap.width, canvasMap.height);
- rl.drawX = worldToDraw(rl, 'x');
- rl.drawY = worldToDraw(rl, 'y');
+function updateOtherPlayers() {
+    for (var i in players) {
+        if (players[i].name != user.name) {
+            ctxs[players[i].canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+            players[i].drawX = worldToDraw(players[i], 'x');
+            players[i].drawY = worldToDraw(players[i], 'y');
 
- drawStaticPlayer(rl);
- }
- }
- }*/
+            drawStaticPlayer(players[i]);
+        }
+    }
+}
 
 /*function multiplayerUpdate(){
  socket.emit('need players array');
@@ -586,30 +585,26 @@ socket.on('destroy player', function (player) {
     destroySprite(player);
 });
 function gameThread() {
+    socket.emit('fetch array');
+    socket.on('fetch array', function (playerArray) {
+        players = playerArray;
+    });
     user.localPSX = user.localX;
     user.localPSY = user.localY;
     user.pA = user.a;
     user.pB = user.b;
     user.x = localToWorld(user, 'x');
     user.y = localToWorld(user, 'y');
-    socket.emit('fetch array');
-    socket.on('fetch array', function (playerArray) {
-        players = playerArray;
-        for (var i in players) {
-            if (players[i].name != user.name) {
-                ctxs[players[i].canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
-                players[i].drawX = worldToDraw(players[i], 'x');
-                players[i].drawY = worldToDraw(players[i], 'y');
 
-                drawStaticPlayer(players[i]);
-            }
-        }
-
-    });
+    console.log('user.x  = ' + user.x);
+    console.log('user.y  = ' + user.y);
+    //updateOtherPlayers();
 
 
-    drawSprite(user);
+
+
     portCollision(user, mainMap);
+    drawSprite(user);
 
 
 }
