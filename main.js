@@ -43,6 +43,10 @@ window.addEventListener('keyup', function (e) {
 function Sprite(options) {
     this.x = options.x;
     this.y = options.y;
+    this.localX = options.localX;
+    this.localY = options.localY;
+    this.drawX = options.drawX || 0;
+    this.drawY = options.drawY || 0;
     this.name = options.name;
     this.width = options.width || 100;
     this.height = options.height || 100;
@@ -54,8 +58,8 @@ function Sprite(options) {
     this.hasAttacked = options.hasAttacked || false;
     this.credits = options.credits || 0;
     this.clipX = options.clipX || 0;
-    this.pSX = options.pSX;
-    this.pSY = options.pSY;
+    this.localPSX = options.localPSX;
+    this.localPSY = options.localPSY;
     this.a = options.a;
     this.b = options.b;
     this.pA = options.pA;
@@ -67,12 +71,15 @@ function Sprite(options) {
     this.socketId = options.socketId;
 }
 
-function drawStaticSprite(sprite) {
-    ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+/*function drawStaticSprite(sprite) {
+ ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
+ }*/
+function drawStaticPlayer(sprite) {
+    ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.drawX, sprite.drawY, sprite.width, sprite.height);
 }
 
 function destroySprite(sprite) {
-    ctxs[player.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+    ctxs[sprite.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
 }
 
 //Sprite Drawing
@@ -80,29 +87,29 @@ function drawSprite(sprite) {
 
     if ((65 in keys || 68 in keys || 87 in keys || 83 in keys)) {
         sprite.isActive = true;
-        ctxs[player.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+        ctxs[sprite.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
 
         if (65 in keys) {
             sprite.compound = 1;
-            sprite.x -= sprite.speed;
+            sprite.localX -= sprite.speed;
         } else if (68 in keys) {
             sprite.compound = 2;
-            sprite.x += sprite.speed;
+            sprite.localX += sprite.speed;
         } else if (87 in keys) {
             sprite.compound = 3;
-            sprite.y -= sprite.speed;
+            sprite.localY -= sprite.speed;
         } else if (83 in keys) {
             sprite.compound = 0;
-            sprite.y += sprite.speed;
+            sprite.localY += sprite.speed;
         }
 
         if (65 in keys || 68 in keys || 87 in keys || 83 in keys) {
-            ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+            ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
         } else {
-            ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+            ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame * 2 + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
 
         }
-        socket.emit('∆', player);
+        socket.emit('∆', sprite);
 
         if (sprite.currentFrame == sprite.frames) {
             sprite.currentFrame = 0;
@@ -111,9 +118,9 @@ function drawSprite(sprite) {
         }
     } else {
         sprite.isActive = false;
-        socket.emit('need players array');
-        ctxs[player.canvasNum].clearRect(sprite.x - sprite.speed, sprite.y - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
-        ctxs[player.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.x, sprite.y, sprite.width, sprite.height);
+        // multiplayerUpdate();
+        ctxs[sprite.canvasNum].clearRect(sprite.localX - sprite.speed, sprite.localY - sprite.speed, sprite.width + 2 * sprite.speed, sprite.height + 2 * sprite.speed);
+        ctxs[sprite.canvasNum].drawImage(spriteSheetImg, sprite.width * sprite.currentFrame + sprite.clipX, sprite.height * sprite.compound, sprite.width, sprite.height, sprite.localX, sprite.localY, sprite.width, sprite.height);
     }
 }
 
@@ -291,11 +298,42 @@ function createCanvas(pl, playersArray) {
 
 
 }
+/** COORDINATE CONVERSIONS ***********************************************/
+function localToWorld(client, dim) {
+    if (dim == 'x') {
+        return client.localX + (client.a * client.speed);
+        /*else if (client.a > client.pA)
+         return client.localX - (client.a * client.speed);*/
+    } else if (dim == 'y') {
+        return client.localY + (client.b * client.speed);
+        /*else if (client.b > client.pB)
+         return client.localY - (client.b * client.speed);*/
+
+    }
+}
+
+
+function worldToDraw(player, dim) {
+    if (dim == 'x') {
+        if (user.a <= user.pA) {
+            return player.x + (user.a * user.speed);
+        } else if (user.a > user.pA)
+            return player.x - (user.a * user.speed);
+    }
+    if (dim == 'y') {
+        if (user.b <= user.pB) {
+            return player.y + (user.b * user.speed);
+        } else if (user.b > user.pB)
+            return player.y - (user.b * user.speed);
+    }
+
+
+}
 /** PORT COLLISION *******************************************************/
 
 function portCollision(sprite, tileMap) {
 
-    if (sprite.x > (canvasMap.width / 2)) {
+    if (sprite.localX > (canvasMap.width / 2)) {
 
 
         if (sprite.a < ((tileMap[0].length * dim) - (canvasMap.width)) / sprite.speed) {
@@ -303,115 +341,128 @@ function portCollision(sprite, tileMap) {
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
 
             //tilesX -= sprite.speed;
-            sprite.x = (canvasMap.width / 2);
+            sprite.localX = (canvasMap.width / 2);
             // if (!monster.isActive) {
             //   ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
-            for (var j in players) {
-                if (players[j].name != sprite.name) {
-                    ctxs[players[j].canvasNum].clearRect(players[j].x - players[j].speed, players[j].y - players[j].speed, players[j].width + 2 * players[j].speed, players[j].height + 2 * players[j].speed);
-                    if (players[j].isActive == true) {
-                        players[j].x -= sprite.speed;
-                        socket.emit('player pos', players[j]);
-                        drawStaticSprite(players[j]);
-                    }
+            /*for (var j in players) {
+             if (players[j].name != sprite.name) {
+             ctxs[players[j].canvasNum].clearRect(players[j].localX - players[j].speed, players[j].localY - players[j].speed, players[j].width + 2 * players[j].speed, players[j].height + 2 * players[j].speed);
+             if (players[j].isActive == true) {
+             players[j].localX -= sprite.speed;
+             socket.emit('player pos', players[j]);
+             drawStaticSprite(players[j]);
+             }
 
-                }
-            }
+             }
+             }*/
 
             //   for (var i = 0; i < monsterArray.length; i++)
             //       monsterArray[i].x -= sprite.speed;
             // }
+            //multiplayerUpdate();
+
             ctxMap.translate(-sprite.speed, 0);
+
             drawMap(tileMap);
+            // multiplayerUpdate();
 
 
-        } else if (sprite.x + sprite.width > canvasMap.width) {
-            sprite.x = sprite.pSX;
+        } else if (sprite.localX + sprite.width > canvasMap.width) {
+            sprite.localX = sprite.localPSX;
         }
-    } else if (sprite.x < 0) {
-        sprite.x = 0;
+    } else if (sprite.localX < 0) {
+        sprite.localX = 0;
     }
 
-    if (sprite.y > canvasMap.height / 2) {
+    if (sprite.localY > canvasMap.height / 2) {
         if (sprite.b < ((tileMap.length * dim) - canvasMap.height) / sprite.speed) {
             sprite.b++;
 
 
             ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-            sprite.y = canvasMap.height / 2;
-            for (var k in players) {
-                if (players[k].name != sprite.name) {
-                    ctxs[players[k].canvasNum].clearRect(players[k].x - players[k].speed, players[k].y - players[k].speed, players[k].width + 2 * players[k].speed, players[k].height + 2 * players[k].speed);
+            sprite.localY = canvasMap.height / 2;
+            /*for (var k in players) {
+             if (players[k].name != sprite.name) {
+             ctxs[players[k].canvasNum].clearRect(players[k].localX - players[k].speed, players[k].localY - players[k].speed, players[k].width + 2 * players[k].speed, players[k].height + 2 * players[k].speed);
 
-                    if (players[k].isActive == true) {
-                        players[k].y -= sprite.speed;
-                        socket.emit('player pos', players[k]);
-                        drawStaticSprite(players[k]);
-                    }
+             if (players[k].isActive == true) {
+             players[k].localY -= sprite.speed;
+             socket.emit('player pos', players[k]);
+             drawStaticSprite(players[k]);
+             }
 
-                }
-            }
+             }
+             }*/
             //if (!monster.isActive) {
             // ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
             // for (var k = 0; k < monsterArray.length; k++)
             //       monsterArray[k].y -= sprite.speed;
             // }
+            //multiplayerUpdate();
+
             ctxMap.translate(0, -sprite.speed);
             drawMap(tileMap);
+            //  multiplayerUpdate();
 
 
         }
     }
-    if (sprite.x < canvasMap.width / 2 && sprite.a > 0) {
+    if (sprite.localX < canvasMap.width / 2 && sprite.a > 0) {
         sprite.a--;
 
 
         ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-        sprite.x = canvasMap.width / 2;
+        sprite.localX = canvasMap.width / 2;
         // tilesX -= sprite.speed;
-        for (var r in players) {
-            if (players[r].name != sprite.name) {
-                ctxs[players[r].canvasNum].clearRect(players[r].x - players[r].speed, players[r].y - players[r].speed, players[r].width + 2 * players[r].speed, players[r].height + 2 * players[r].speed);
-                if (players[r].isActive == true) {
-                    players[r].x += sprite.speed;
-                    socket.emit('player pos', players[r]);
-                    drawStaticSprite(players[r]);
-                }
+        /*for (var r in players) {
+         if (players[r].name != sprite.name) {
+         ctxs[players[r].canvasNum].clearRect(players[r].localX - players[r].speed, players[r].localY - players[r].speed, players[r].width + 2 * players[r].speed, players[r].height + 2 * players[r].speed);
+         if (players[r].isActive == true) {
+         players[r].localX += sprite.speed;
+         socket.emit('player pos', players[r]);
+         drawStaticSprite(players[r]);
+         }
 
-            }
-        }
+         }
+         }*/
         //  if (!monster.isActive) {
-        //  ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
+        //  c.localXMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
         // for (i = 0; i < monsterArray.length; i++)
         //    monsterArray[i].x += sprite.speed;
         //  }
+
         ctxMap.translate(sprite.speed, 0);
 
         drawMap(tileMap);
+        //multiplayerUpdate();
 
 
     }
-    if ((sprite.y < canvasMap.height / 2) && sprite.b > 0) {
+    if ((sprite.localY < canvasMap.height / 2) && sprite.b > 0) {
         sprite.b--;
 
 
         ctxMap.clearRect(0, 0, canvasMap.width, canvasMap.height);
-        sprite.y = canvasMap.height / 2;
+        sprite.localY = canvasMap.height / 2;
+
 
         ctxMap.translate(0, sprite.speed);
+
         drawMap(tileMap);
+        //multiplayerUpdate();
 
-        for (var x in players) {
-            if (players[x].name != sprite.name) {
-                ctxs[players[x].canvasNum].clearRect(players[x].x - players[x].speed, players[x].y - players[x].speed, players[x].width + 2 * players[x].speed, players[x].height + 2 * players[x].speed);
-                if (players[x].isActive == true) {
-                    players[x].y += sprite.speed;
-                    socket.emit('player pos', players[x]);
-                    drawStaticSprite(players[x]);
-                }
 
-            }
-        }
+        /*  for (var x in players) {
+         if (players[x].name != sprite.name) {
+         ctxs[players[x].canvasNum].clearRect(players[x].localX - players[x].speed, players[x].localY - players[x].speed, players[x].width + 2 * players[x].speed, players[x].height + 2 * players[x].speed);
+         if (players[x].isActive == true) {
+         players[x].localY += sprite.speed;
+         socket.emit('player pos', players[x]);
+         drawStaticSprite(players[x]);
+         }
+
+         }
+         }*/
         //  if (!monster.isActive) {
 
         //ctxMon.clearRect(0, 0, canvasMonster.width, canvasMonster.height);
@@ -420,11 +471,11 @@ function portCollision(sprite, tileMap) {
         //  }
 
     }
-    if (sprite.y < 0) {
-        sprite.y = 0;
+    if (sprite.localY < 0) {
+        sprite.localY = 0;
     }
-    if (sprite.y + sprite.height > canvasMap.height) {
-        sprite.y = sprite.pSY;
+    if (sprite.localY + sprite.height > canvasMap.height) {
+        sprite.localY = sprite.localPSY;
     }
     /// for (i = 0; i < monsterArray.length; i++)
     //    drawStaticMonster(monsterArray[i]);
@@ -445,14 +496,14 @@ function OneDtoTwoD(list, elementsPerSubArray) { //Converting 1d array to 2d Arr
 }
 
 var shiftX = 0, shiftY = 0;
-var player = null;
-function newPlayer() {
+var user;
+function newUser() {
     var rand = Math.floor(Math.random() * 999);
 //Sprite Definitions
-    var user = new Sprite({
+    var kuhaku = new Sprite({
         name: 'user ' + rand,
-        x: shiftX * dim,
-        y: shiftY * dim,
+        localX: shiftX * dim,
+        localY: shiftY * dim,
         a: 0,
         b: 0,
         width: 32,
@@ -462,82 +513,109 @@ function newPlayer() {
         userNum: userNum
     });
 
-    socket.emit('init player', user);
+    user = kuhaku;
+    socket.emit('init user', user);
 
-    player = user;
     socket.emit('createCanvas');
-    player.socketId = socket.id;
-    socket.on('createCanvas', function (players) {
-        var tempCanvasNum = player.canvasNum;
-        createCanvas(player, players);
-        if(tempCanvasNum != -1){
-            player.canvasNum = tempCanvasNum;
-        }
-    });
-    socket.on('createPseudoCanvas', function (players) {
-        if(ctxs.length != players.length){
-            console.log('pseudo');
-            for (var i in players) {
-                if (players[i].name != player.name) {
-                    createCanvas(players[i], players);
-                    console.log('psuedo ' + i);
-                }
-            }
-        }
-
-
+    socket.on('createCanvas', function (playersar) {
+        //var tempCanvasNum = user.canvasNum;
+        console.log(user.canvasNum);
+        createCanvas(user, playersar);
+        console.log(user.canvasNum);
+        /*if (tempCanvasNum != -1) {
+         user.canvasNum = tempCanvasNum;
+         }*/
     });
     setInterval(gameThread, 30);
 
-    //  socket.emit('need players array now');
-    //  socket.on('need players array now', function(playersArray){
-    //  createCanvas(player, playersArray);
-    //   });
 
 }
 
-socket.on('add player', function (players) {
-    for (var i in players) {
-        if (players[i].name != player.name) {
-            drawStaticSprite(players[i]);
+socket.on('add player', function (playersar) {
+    console.log('in add player');
+    for (var i in playersar) {
+        var rl = playersar[i];
+        if (rl.name != user.name) {
+
+            createCanvas(rl, playersar);
+
+            ctxs[rl.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+            rl.drawX = worldToDraw(rl, 'x');
+            rl.drawY = worldToDraw(rl, 'y');
+
+            drawStaticPlayer(rl);
+            console.log('add player worked ' + i);
+
         }
+        //multiplayerUpdate();
     }
 });
 
+/*function updateOtherPlayer(playersArray){
+ for(var i in playersArray){
+ if(playersArray[i].name != user.name){
+ var rl = playersArray[i];
+ ctxs[rl.canvasNum].clearRect(0,0,canvasMap.width, canvasMap.height);
+ rl.drawX = worldToDraw(rl, 'x');
+ rl.drawY = worldToDraw(rl, 'y');
+
+ drawStaticPlayer(rl);
+ }
+ }
+ }*/
+
+/*function multiplayerUpdate(){
+ socket.emit('need players array');
+ socket.on('need players array', function (pli) {
+ updateOtherPlayer(pli);
+ });
+ }*/
+
 socket.on('∆', function (pl) {
-    console.log(pl.canvasNum);
-    ctxs[pl.canvasNum].clearRect(pl.x - pl.speed, pl.y - pl.speed, pl.width + 2 * pl.speed, pl.height + 2 * pl.speed);
-    drawStaticSprite(pl);
+    console.log('∆' + pl.canvasNum);
+
+    ctxs[pl.canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+    pl.drawX = worldToDraw(pl, 'x');
+    pl.drawY = worldToDraw(pl, 'y');
+    drawStaticPlayer(pl);
 
 
-});
-
-var players;
-socket.on('need players array', function (pli) {
-    players = pli;
 });
 
 socket.on('destroy player', function (player) {
     destroySprite(player);
 });
 function gameThread() {
-    player.pSX = player.x;
-    player.pSY = player.y;
-    player.pA = player.a;
-    player.pB = player.b;
+    user.localPSX = user.localX;
+    user.localPSY = user.localY;
+    user.pA = user.a;
+    user.pB = user.b;
+    user.x = localToWorld(user, 'x');
+    user.y = localToWorld(user, 'y');
+    socket.emit('fetch array');
+    socket.on('fetch array', function (playerArray) {
+        players = playerArray;
+        for (var i in players) {
+            if (players[i].name != user.name) {
+                ctxs[players[i].canvasNum].clearRect(0, 0, canvasMap.width, canvasMap.height);
+                players[i].drawX = worldToDraw(players[i], 'x');
+                players[i].drawY = worldToDraw(players[i], 'y');
 
-    drawSprite(player);
-    portCollision(player, mainMap);
+                drawStaticPlayer(players[i]);
+            }
+        }
+
+    });
+
+
+    drawSprite(user);
+    portCollision(user, mainMap);
 
 
 }
 
 function gameLoop() {
-    socket.emit('getUserNumData');
-    socket.on('fetchUserNumData', function (uN) {
-        userNum = uN;
-    });
-    newPlayer();
+    newUser();
 }
 
 //Load Image Variables
