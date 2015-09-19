@@ -1,5 +1,5 @@
 /**
- * Created by ipsum on 9/12/15.
+ * Created by alnim on 9/12/15.
  */
 var socket = io();
 
